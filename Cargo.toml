@@ -8,3 +8,4 @@ homepage = "https://github.com/indygreg/PyOxidizer"
 repository = "https://github.com/indygreg/PyOxidizer.git"
 
 [dependencies]
+starlark = "0.2"
