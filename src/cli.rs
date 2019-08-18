@@ -47,13 +47,15 @@ pub fn run_cli() -> Result<(), String> {
 
             let context = EnvironmentContext { cwd };
 
-            match evaluate_file(&path, &context) {
-                Ok(_) => {
+            let eval_result = match evaluate_file(&path, &context) {
+                Ok(res) => {
                     println!("evaluation complete");
-                    Ok(())
+                    Ok(res)
                 }
                 Err(e) => Err(format!("error evaluating {}: {:#?}", path.display(), e)),
-            }
+            }?;
+
+            eval_result.execute_all_pipelines()
         }
         _ => Err("invalid sub-command".to_string()),
     }

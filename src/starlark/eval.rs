@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::EnvironmentContext;
+use crate::starlark::values::Pipeline;
 use codemap::CodeMap;
 use codemap_diagnostic::{Diagnostic, Level};
 use starlark::environment::Environment;
@@ -13,6 +14,54 @@ use std::sync::{Arc, Mutex};
 pub struct EvalResult {
     /// The raw environment that was executed.
     pub env: Environment,
+}
+
+impl EvalResult {
+    pub fn execute_all_pipelines(&self) -> Result<(), String> {
+        let pipelines = self.env.get("PIPELINES").unwrap();
+
+        let it = pipelines
+            .into_iter()
+            .or_else(|e| Err(format!("could not iterate PIPELINES: {:#?}", e)))?;
+
+        for pv in it {
+            let raw_value = pv.0.borrow();
+            let pipeline: &Pipeline = raw_value.as_any().downcast_ref().unwrap();
+
+            self.execute_raw_pipeline(pipeline)?;
+        }
+
+        Ok(())
+    }
+
+    /// Execute a defined pipeline.
+    pub fn execute_pipeline(&self, name: &str) -> Result<(), String> {
+        let pipelines = self.env.get("PIPELINES").unwrap();
+
+        let it = pipelines
+            .into_iter()
+            .or_else(|e| Err(format!("could not iterate PIPELINES: {:#?}", e)))?;
+
+        for pv in it {
+            let raw_value = pv.0.borrow();
+            let pipeline: &Pipeline = raw_value.as_any().downcast_ref().unwrap();
+
+            if pipeline.name == name {
+                return self.execute_raw_pipeline(pipeline);
+            }
+        }
+
+        Err(format!("could not find pipeline {}", name))
+    }
+
+    fn execute_raw_pipeline(&self, pipeline: &Pipeline) -> Result<(), String> {
+        println!("executing pipeline: {}", pipeline.name);
+        for step in &pipeline.steps {
+            println!("step: {:#?}", step);
+        }
+
+        Ok(())
+    }
 }
 
 /// Evaluate an app distribution starlark file in the context of a current working directory.
