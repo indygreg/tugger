@@ -84,3 +84,46 @@ impl TypedValue for FileManifest {
         default_compare(self, other)
     }
 }
+
+/// Represents a step to produce a tar archive.
+#[derive(Debug, Clone)]
+pub struct TarArchive {
+    /// Filename of produced tar archive.
+    pub dest_name: String,
+
+    /// Manifest denoting content to be added to archive.
+    pub file_manifest: FileManifest,
+}
+
+impl TypedValue for TarArchive {
+    immutable!();
+    any!();
+    not_supported!(binop);
+    not_supported!(container);
+    not_supported!(function);
+    not_supported!(get_hash);
+    not_supported!(to_int);
+
+    fn to_str(&self) -> String {
+        format!(
+            "TarArchive<dest_name={}, file_manifest={:#?}",
+            self.dest_name, self.file_manifest
+        )
+    }
+
+    fn to_repr(&self) -> String {
+        self.to_str()
+    }
+
+    fn get_type(&self) -> &'static str {
+        "TarArchive"
+    }
+
+    fn to_bool(&self) -> bool {
+        false
+    }
+
+    fn compare(&self, other: &dyn TypedValue, _recursion: u32) -> Result<Ordering, ValueError> {
+        default_compare(self, other)
+    }
+}

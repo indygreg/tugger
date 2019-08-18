@@ -5,17 +5,19 @@
 use starlark::environment::{Environment, EnvironmentError};
 use starlark::stdlib::global_functions;
 use starlark::values::list::List;
-use starlark::values::{RuntimeError, Value, ValueError, ValueResult};
+use starlark::values::{
+    RuntimeError, Value, ValueError, ValueResult, INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+};
 use starlark::{
-    starlark_fun, starlark_module, starlark_signature, starlark_signature_extraction,
-    starlark_signatures,
+    check_type, starlark_err, starlark_fun, starlark_module, starlark_signature,
+    starlark_signature_extraction, starlark_signatures,
 };
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 mod values;
 
-use values::{FileManifest, SourceFile};
+use values::{FileManifest, SourceFile, TarArchive};
 
 fn evaluate_glob(cwd: &str, pattern: &str) -> Vec<PathBuf> {
     let search = if pattern.starts_with('/') {
@@ -195,6 +197,32 @@ starlark_module! { appdistribute_module =>
 
         Ok(Value::new(manifest))
     }
+
+    /// tar_archive(filename, manifest)
+    ///
+    /// Produce a tar archive from a manifest of files.
+    ///
+    /// `filename` is a string denoting the output filename.
+    ///
+    /// `manifest` is a `FileManifest` describing the files to add to the archive.
+    /// The value will be copied and modifications to the original `FileManifest`
+    /// will not be reflected on the returned instance.
+    ///
+    /// Returns a `TarArchive` describing a tar archive to produce.
+    tar_archive(filename, manifest) {
+        check_type!(filename, "tar_archive", string);
+        check_type!(manifest, "tar_archive", FileManifest);
+
+        let raw_manifest = manifest.0.borrow();
+        let file_manifest: &FileManifest = raw_manifest.as_any().downcast_ref().unwrap();
+
+        let tar = TarArchive {
+            dest_name: filename.to_str(),
+            file_manifest: file_manifest.clone(),
+        };
+
+        Ok(Value::new(tar))
+    }
 }
 
 /// Obtain a Starlark environment for evaluating distribution configuration.
@@ -203,7 +231,9 @@ pub fn global_environment(cwd: &Path) -> Result<Environment, EnvironmentError> {
 
     let env = appdistribute_module(global_functions(env));
 
+    // TODO perhaps capture these in a custom Environment type?
     env.set("CWD", Value::from(cwd.display().to_string()))?;
+    env.set("PIPELINES", List::new())?;
 
     Ok(env)
 }
