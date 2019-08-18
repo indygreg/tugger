@@ -293,6 +293,9 @@ pub struct EnvironmentContext {
 
     /// Logger to use for logging execution.
     pub logger: slog::Logger,
+
+    /// Path to write distribution artifacts.
+    pub dist_path: PathBuf,
 }
 
 /// Obtain a Starlark environment for evaluating distribution configuration.
@@ -303,6 +306,10 @@ pub fn global_environment(context: &EnvironmentContext) -> Result<Environment, E
 
     // TODO perhaps capture these in a custom Environment type?
     env.set("CWD", Value::from(context.cwd.display().to_string()))?;
+    env.set(
+        "DIST_PATH",
+        Value::from(context.dist_path.display().to_string()),
+    )?;
     env.set("PIPELINES", List::new())?;
 
     Ok(env)

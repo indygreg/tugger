@@ -61,10 +61,16 @@ pub fn run_cli() -> Result<(), String> {
         slog::o!(),
     );
 
+    let cwd = std::env::current_dir().unwrap();
+    let dist_path = cwd.join("dist");
+
     match matches.subcommand() {
         ("repl", Some(_)) => {
-            let cwd = std::env::current_dir().unwrap();
-            let context = EnvironmentContext { cwd, logger };
+            let context = EnvironmentContext {
+                cwd,
+                logger,
+                dist_path,
+            };
             let env = super::starlark::global_environment(&context)
                 .or_else(|_| Err(String::from("error creating environment")))?;
 
@@ -79,6 +85,7 @@ pub fn run_cli() -> Result<(), String> {
             let context = EnvironmentContext {
                 cwd: path.parent().unwrap().to_path_buf(),
                 logger: logger.clone(),
+                dist_path,
             };
 
             let eval_result = match evaluate_file(&path, &context) {
