@@ -197,7 +197,7 @@ starlark_module! { appdistribute_module =>
                 None => relative_path.to_path_buf(),
             };
 
-            manifest.files.insert(relative_path.display().to_string(), path.clone());
+            manifest.files.insert(relative_path.display().to_string(), path.canonicalize().unwrap());
         }
 
         Ok(Value::new(manifest))
