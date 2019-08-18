@@ -7,7 +7,7 @@ use starlark::values::{default_compare, TypedValue, Value, ValueError, ValueResu
 use starlark::{any, immutable, not_supported};
 use std::any::Any;
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -34,6 +34,46 @@ impl TypedValue for SourceFile {
 
     fn get_type(&self) -> &'static str {
         "SourceFile"
+    }
+
+    fn to_bool(&self) -> bool {
+        false
+    }
+
+    fn compare(&self, other: &dyn TypedValue, _recursion: u32) -> Result<Ordering, ValueError> {
+        default_compare(self, other)
+    }
+}
+
+/// Represents a virtual filesystem mapping of relative filenames to source files.
+///
+/// This may expand in the future to abstract the source of file content so
+/// that file data can come from memory, etc. We may also want to add per-file
+/// metadata, such as the owner, permissions, etc. For now things are simple.
+#[derive(Debug, Default, Clone)]
+pub struct FileManifest {
+    pub files: BTreeMap<String, PathBuf>,
+}
+
+impl TypedValue for FileManifest {
+    immutable!();
+    any!();
+    not_supported!(binop);
+    not_supported!(container);
+    not_supported!(function);
+    not_supported!(get_hash);
+    not_supported!(to_int);
+
+    fn to_str(&self) -> String {
+        format!("FileManifest<{:#?}", self.files)
+    }
+
+    fn to_repr(&self) -> String {
+        self.to_str()
+    }
+
+    fn get_type(&self) -> &'static str {
+        "FileManifest"
     }
 
     fn to_bool(&self) -> bool {

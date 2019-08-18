@@ -5,7 +5,7 @@
 use starlark::environment::{Environment, EnvironmentError};
 use starlark::stdlib::global_functions;
 use starlark::values::list::List;
-use starlark::values::{Value, ValueError, ValueResult};
+use starlark::values::{RuntimeError, Value, ValueError, ValueResult};
 use starlark::{
     starlark_fun, starlark_module, starlark_signature, starlark_signature_extraction,
     starlark_signatures,
@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 
 mod values;
 
-use values::SourceFile;
+use values::{FileManifest, SourceFile};
 
 fn evaluate_glob(cwd: &str, pattern: &str) -> Vec<PathBuf> {
     let search = if pattern.starts_with('/') {
@@ -122,6 +122,78 @@ starlark_module! { appdistribute_module =>
         let cwd = env.get("CWD").unwrap().to_str();
 
         resolve_include_exclude(&cwd, &include, &exclude)
+    }
+
+    /// file_manifest_from_files(files, relative_to=None, prefix=None)
+    ///
+    /// Construct a `FileManifest` from an iterable of `SourceFile` (often from
+    /// using `glob()`).
+    ///
+    /// The paths in `FileManifest` will be relative to the `relative_to` path,
+    /// which is the relative directory the file is being evaluated in by default.
+    ///
+    /// `prefix` can be used to prefix all relative paths with a value.
+    file_manifest_from_files(env env, files, relative_to=None, prefix=None) {
+        let cwd = env.get("CWD").unwrap().to_str();
+
+        if files.get_type() != "list" {
+            return Err(ValueError::TypeNotX {
+                object_type: files.get_type().to_string(),
+                op: "list".to_string(),
+            });
+        }
+
+        let relative_to_path = match relative_to.get_type() {
+            "NoneType" => PathBuf::from(cwd),
+            "string" => PathBuf::from(relative_to.to_str()),
+            t => {
+                return Err(ValueError::TypeNotX {
+                    object_type: t.to_string(),
+                    op: "str".to_string(),
+                })
+            },
+        };
+
+        let prefix = match prefix.get_type() {
+            "NoneType" => None,
+            "string" => Some(prefix.to_str()),
+            t => {
+                return Err(ValueError::TypeNotX {
+                    object_type: t.to_string(),
+                    op: "str".to_string(),
+                })
+            }
+        };
+
+        let mut manifest = FileManifest::default();
+
+        for v in files.into_iter()? {
+            if v.get_type() != "SourceFile" {
+                return Err(ValueError::TypeNotX {
+                    object_type: v.get_type().to_string(),
+                    op: "SourceFile".to_string(),
+                });
+            }
+
+            let raw_value = v.0.borrow();
+            let source_file: &SourceFile = raw_value.as_any().downcast_ref().unwrap();
+            let path = &source_file.path;
+            let relative_path: &Path = path.strip_prefix(&relative_to_path)
+                .or_else(|_| Err(ValueError::Runtime(RuntimeError {
+                    code: "bad_relative_path",
+                    message: format!("{} is not relative to {}", path.display(), relative_to_path.display()),
+                    label: "relative_to".to_string(),
+                })))?;
+
+            let relative_path = match prefix {
+                Some(ref prefix) => PathBuf::from(prefix).join(relative_path),
+                None => relative_path.to_path_buf(),
+            };
+
+            manifest.files.insert(relative_path.display().to_string(), path.clone());
+        }
+
+        Ok(Value::new(manifest))
     }
 }
 
