@@ -2,11 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::values::{Pipeline, Step};
 use super::EnvironmentContext;
-use crate::starlark::values::Pipeline;
 use codemap::CodeMap;
 use codemap_diagnostic::{Diagnostic, Level};
-use slog::{warn, Logger};
+use slog::{info, warn, Logger};
 use starlark::environment::Environment;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -60,7 +60,13 @@ impl EvalResult {
     fn execute_raw_pipeline(&self, pipeline: &Pipeline) -> Result<(), String> {
         warn!(self.logger, "executing pipeline: {}", pipeline.name);
         for step in &pipeline.steps {
-            warn!(self.logger, "step: {:#?}", step);
+            info!(self.logger, "step: {:#?}", step);
+
+            match step {
+                Step::TarArchive(ta) => {
+                    ta.execute(&self.logger, &pipeline.dist_path)?;
+                }
+            }
         }
 
         Ok(())

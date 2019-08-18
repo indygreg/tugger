@@ -2,13 +2,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use slog::warn;
 use starlark::environment::Environment;
 use starlark::values::{default_compare, TypedValue, Value, ValueError, ValueResult};
 use starlark::{any, immutable, not_supported};
 use std::any::Any;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct SourceFile {
@@ -95,6 +96,42 @@ pub struct TarArchive {
     pub file_manifest: FileManifest,
 }
 
+impl TarArchive {
+    pub fn execute(&self, logger: &slog::Logger, dist_path: &Path) -> Result<(), String> {
+        let dest_path = dist_path.join(&self.dest_name);
+
+        warn!(logger, "writing tarball to {}", dest_path.display());
+
+        std::fs::create_dir_all(dest_path.parent().unwrap()).or_else(|_| {
+            Err(format!(
+                "unable to create directory for {}",
+                dest_path.display()
+            ))
+        })?;
+
+        let fh = std::fs::File::create(&dest_path).or_else(|_| {
+            Err(format!(
+                "unable to open {} for writing",
+                dest_path.display()
+            ))
+        })?;
+
+        let mut builder = tar::Builder::new(fh);
+        builder.mode(tar::HeaderMode::Deterministic);
+
+        for (rel_path, fs_path) in &self.file_manifest.files {
+            warn!(logger, "adding {} as {}", fs_path.display(), rel_path);
+            builder
+                .append_path_with_name(fs_path, rel_path)
+                .or_else(|e| Err(e.to_string()))?;
+        }
+
+        builder.finish().or_else(|e| Err(e.to_string()))?;
+
+        Ok(())
+    }
+}
+
 impl TypedValue for TarArchive {
     immutable!();
     any!();
@@ -139,6 +176,9 @@ pub enum Step {
 pub struct Pipeline {
     /// The name of this pipeline.
     pub name: String,
+
+    /// Path to write distribution files.
+    pub dist_path: PathBuf,
 
     /// The series of steps to execute.
     pub steps: Vec<Step>,

@@ -267,9 +267,12 @@ starlark_module! { appdistribute_module =>
             res.push(step);
         }
 
+        let dist_path: Value = env.get("DIST_PATH").unwrap();
+
         let pipeline = Value::new(Pipeline {
             name: name.to_str(),
             steps: res,
+            dist_path: PathBuf::from(dist_path.to_str()),
         });
 
         let pipelines: Value = env.get("PIPELINES").unwrap();
