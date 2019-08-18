@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::EnvironmentContext;
 use codemap::CodeMap;
 use codemap_diagnostic::{Diagnostic, Level};
 use starlark::environment::Environment;
@@ -9,8 +10,8 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 /// Evaluate an app distribution starlark file in the context of a current working directory.
-pub fn evaluate_file(path: &Path, cwd: &Path) -> Result<Environment, Diagnostic> {
-    let mut env = super::global_environment(cwd).or_else(|_| {
+pub fn evaluate_file(path: &Path, context: &EnvironmentContext) -> Result<Environment, Diagnostic> {
+    let mut env = super::global_environment(context).or_else(|_| {
         Err(Diagnostic {
             level: Level::Error,
             message: "error creating environment".to_string(),

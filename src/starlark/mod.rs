@@ -279,14 +279,20 @@ starlark_module! { appdistribute_module =>
     }
 }
 
+/// Holds state for evaluating a starlark environment.
+#[derive(Debug, Clone)]
+pub struct EnvironmentContext {
+    pub cwd: PathBuf,
+}
+
 /// Obtain a Starlark environment for evaluating distribution configuration.
-pub fn global_environment(cwd: &Path) -> Result<Environment, EnvironmentError> {
+pub fn global_environment(context: &EnvironmentContext) -> Result<Environment, EnvironmentError> {
     let env = Environment::new("global");
 
     let env = appdistribute_module(global_functions(env));
 
     // TODO perhaps capture these in a custom Environment type?
-    env.set("CWD", Value::from(cwd.display().to_string()))?;
+    env.set("CWD", Value::from(context.cwd.display().to_string()))?;
     env.set("PIPELINES", List::new())?;
 
     Ok(env)

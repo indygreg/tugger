@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::starlark::eval::evaluate_file;
+use super::starlark::EnvironmentContext;
 use clap::{App, AppSettings, Arg, SubCommand};
 use std::path::PathBuf;
 
@@ -32,7 +33,8 @@ pub fn run_cli() -> Result<(), String> {
 
     match matches.subcommand() {
         ("repl", Some(_)) => {
-            let env = super::starlark::global_environment(&cwd)
+            let context = EnvironmentContext { cwd };
+            let env = super::starlark::global_environment(&context)
                 .or_else(|_| Err(String::from("error creating environment")))?;
 
             starlark_repl::repl(&env, false);
@@ -43,7 +45,9 @@ pub fn run_cli() -> Result<(), String> {
             let path = args.value_of("path").unwrap();
             let path = PathBuf::from(path);
 
-            match evaluate_file(&path, &cwd) {
+            let context = EnvironmentContext { cwd };
+
+            match evaluate_file(&path, &context) {
                 Ok(_) => {
                     println!("evaluation complete");
                     Ok(())
