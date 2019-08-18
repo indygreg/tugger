@@ -30,7 +30,11 @@ fn evaluate_glob(cwd: &str, pattern: &str) -> Vec<PathBuf> {
     let mut res = Vec::new();
 
     for path in glob::glob(&search).unwrap() {
-        res.push(path.unwrap());
+        let path = path.unwrap();
+
+        if path.is_file() {
+            res.push(path);
+        }
     }
 
     res
