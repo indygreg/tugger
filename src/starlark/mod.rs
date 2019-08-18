@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 
 mod values;
 
-use values::{FileManifest, SourceFile, TarArchive};
+use values::{FileManifest, Pipeline, SourceFile, Step, TarArchive};
 
 fn evaluate_glob(cwd: &str, pattern: &str) -> Vec<PathBuf> {
     let search = if pattern.starts_with('/') {
@@ -222,6 +222,59 @@ starlark_module! { appdistribute_module =>
         };
 
         Ok(Value::new(tar))
+    }
+
+    /// pipeline(name, steps=[])
+    ///
+    /// Create a pipeline from a series of steps.
+    ///
+    /// Pipelines represent a named series of actions to perform to accomplish some
+    /// task. A step is a type - like the result of `tar_archive()` - that can be
+    /// evaluated.
+    pipeline(env env, name, steps=None) {
+        check_type!(name, "pipeline", string);
+
+        let steps = if steps.get_type() == "NoneType" {
+            List::new()
+        } else {
+            steps.clone()
+        };
+
+        check_type!(steps, "pipeline", list);
+
+        let mut res = Vec::new();
+
+        for step in steps.into_iter()? {
+            let step = match step.get_type() {
+                "TarArchive" => {
+                    let raw_value = step.0.borrow();
+                    let tar_archive: &TarArchive = raw_value.as_any().downcast_ref().unwrap();
+                    Step::TarArchive(tar_archive.clone())
+                },
+                t => {
+                    return Err(ValueError::TypeNotX {
+                        object_type: t.to_string(),
+                        op: "pipeline".to_string(),
+                    });
+                }
+            };
+
+            res.push(step);
+        }
+
+        let pipeline = Value::new(Pipeline {
+            name: name.to_str(),
+            steps: res,
+        });
+
+        let pipelines: Value = env.get("PIPELINES").unwrap();
+        List::mutate(&pipelines, &|values: &mut Vec<Value>| {
+            values.push(pipeline.clone());
+
+            Ok(Value::from(None))
+        })?;
+
+        Ok(pipeline)
     }
 }
 

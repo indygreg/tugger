@@ -127,3 +127,49 @@ impl TypedValue for TarArchive {
         default_compare(self, other)
     }
 }
+
+/// Represents a generic step.
+#[derive(Debug, Clone)]
+pub enum Step {
+    TarArchive(TarArchive),
+}
+
+/// Represents a series of `Step`s to execute.
+#[derive(Debug, Default, Clone)]
+pub struct Pipeline {
+    /// The name of this pipeline.
+    pub name: String,
+
+    /// The series of steps to execute.
+    pub steps: Vec<Step>,
+}
+
+impl TypedValue for Pipeline {
+    immutable!();
+    any!();
+    not_supported!(binop);
+    not_supported!(container);
+    not_supported!(function);
+    not_supported!(get_hash);
+    not_supported!(to_int);
+
+    fn to_str(&self) -> String {
+        format!("Pipeline<name={}, steps={:#?}", self.name, self.steps)
+    }
+
+    fn to_repr(&self) -> String {
+        self.to_str()
+    }
+
+    fn get_type(&self) -> &'static str {
+        "Pipeline"
+    }
+
+    fn to_bool(&self) -> bool {
+        false
+    }
+
+    fn compare(&self, other: &dyn TypedValue, _recursion: u32) -> Result<Ordering, ValueError> {
+        default_compare(self, other)
+    }
+}
