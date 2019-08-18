@@ -9,8 +9,14 @@ use starlark::environment::Environment;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
+/// Represents the result of evaluating an environment.
+pub struct EvalResult {
+    /// The raw environment that was executed.
+    pub env: Environment,
+}
+
 /// Evaluate an app distribution starlark file in the context of a current working directory.
-pub fn evaluate_file(path: &Path, context: &EnvironmentContext) -> Result<Environment, Diagnostic> {
+pub fn evaluate_file(path: &Path, context: &EnvironmentContext) -> Result<EvalResult, Diagnostic> {
     let mut env = super::global_environment(context).or_else(|_| {
         Err(Diagnostic {
             level: Level::Error,
@@ -26,5 +32,5 @@ pub fn evaluate_file(path: &Path, context: &EnvironmentContext) -> Result<Enviro
 
     starlark::eval::simple::eval_file(&map, &path.display().to_string(), false, &mut env)?;
 
-    Ok(env)
+    Ok(EvalResult { env })
 }
