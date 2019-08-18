@@ -282,6 +282,9 @@ starlark_module! { appdistribute_module =>
 /// Holds state for evaluating a starlark environment.
 #[derive(Debug, Clone)]
 pub struct EnvironmentContext {
+    /// Directory the environment should be evaluated from.
+    ///
+    /// Typically used to resolve absolute paths to relative filenames.
     pub cwd: PathBuf,
 }
 
