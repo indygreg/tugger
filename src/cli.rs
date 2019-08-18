@@ -7,6 +7,30 @@ use super::starlark::EnvironmentContext;
 use clap::{App, AppSettings, Arg, SubCommand};
 use std::path::PathBuf;
 
+use slog::warn;
+use slog::Drain;
+
+pub struct PrintlnDrain {
+    min_level: slog::Level,
+}
+
+impl Drain for PrintlnDrain {
+    type Ok = ();
+    type Err = std::io::Error;
+
+    fn log(
+        &self,
+        record: &slog::Record,
+        _values: &slog::OwnedKVList,
+    ) -> Result<Self::Ok, Self::Err> {
+        if record.level().is_at_least(self.min_level) {
+            println!("{}", record.msg());
+        }
+
+        Ok(())
+    }
+}
+
 pub fn run_cli() -> Result<(), String> {
     let matches = App::new("appdistribute")
         .setting(AppSettings::ArgRequiredElseHelp)
@@ -29,10 +53,18 @@ pub fn run_cli() -> Result<(), String> {
         )
         .get_matches();
 
+    let logger = slog::Logger::root(
+        PrintlnDrain {
+            min_level: slog::Level::Info,
+        }
+        .fuse(),
+        slog::o!(),
+    );
+
     match matches.subcommand() {
         ("repl", Some(_)) => {
             let cwd = std::env::current_dir().unwrap();
-            let context = EnvironmentContext { cwd };
+            let context = EnvironmentContext { cwd, logger };
             let env = super::starlark::global_environment(&context)
                 .or_else(|_| Err(String::from("error creating environment")))?;
 
@@ -46,11 +78,12 @@ pub fn run_cli() -> Result<(), String> {
 
             let context = EnvironmentContext {
                 cwd: path.parent().unwrap().to_path_buf(),
+                logger: logger.clone(),
             };
 
             let eval_result = match evaluate_file(&path, &context) {
                 Ok(res) => {
-                    println!("evaluation complete");
+                    warn!(logger, "evaluation complete");
                     Ok(res)
                 }
                 Err(e) => Err(format!("error evaluating {}: {:#?}", path.display(), e)),

@@ -6,6 +6,7 @@ use super::EnvironmentContext;
 use crate::starlark::values::Pipeline;
 use codemap::CodeMap;
 use codemap_diagnostic::{Diagnostic, Level};
+use slog::{warn, Logger};
 use starlark::environment::Environment;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -14,6 +15,8 @@ use std::sync::{Arc, Mutex};
 pub struct EvalResult {
     /// The raw environment that was executed.
     pub env: Environment,
+
+    logger: Logger,
 }
 
 impl EvalResult {
@@ -55,9 +58,9 @@ impl EvalResult {
     }
 
     fn execute_raw_pipeline(&self, pipeline: &Pipeline) -> Result<(), String> {
-        println!("executing pipeline: {}", pipeline.name);
+        warn!(self.logger, "executing pipeline: {}", pipeline.name);
         for step in &pipeline.steps {
-            println!("step: {:#?}", step);
+            warn!(self.logger, "step: {:#?}", step);
         }
 
         Ok(())
@@ -77,9 +80,12 @@ pub fn evaluate_file(path: &Path, context: &EnvironmentContext) -> Result<EvalRe
 
     let map = Arc::new(Mutex::new(CodeMap::new()));
 
-    println!("evaluating {}", path.display());
+    warn!(context.logger, "evaluating {}", path.display());
 
     starlark::eval::simple::eval_file(&map, &path.display().to_string(), false, &mut env)?;
 
-    Ok(EvalResult { env })
+    Ok(EvalResult {
+        env,
+        logger: context.logger.clone(),
+    })
 }

@@ -290,6 +290,9 @@ pub struct EnvironmentContext {
     ///
     /// Typically used to resolve absolute paths to relative filenames.
     pub cwd: PathBuf,
+
+    /// Logger to use for logging execution.
+    pub logger: slog::Logger,
 }
 
 /// Obtain a Starlark environment for evaluating distribution configuration.
