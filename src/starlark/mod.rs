@@ -15,6 +15,7 @@ use starlark::{
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
+pub mod eval;
 mod values;
 
 use values::{FileManifest, Pipeline, SourceFile, Step, TarArchive};

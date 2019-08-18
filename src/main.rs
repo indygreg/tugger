@@ -27,19 +27,12 @@ is implemented in C. Rust is simply a tool to achieve an end goal, albeit
 a rather effective and powerful tool.
 */
 
-mod starlark;
-
-fn test() -> Result<(), String> {
-    let cwd = std::env::current_dir().unwrap();
-
-    let env = starlark::global_environment(&cwd)
-        .or_else(|_| Err(String::from("error creating environment")))?;
-
-    starlark_repl::repl(&env, false);
-
-    Ok(())
-}
+pub mod cli;
+pub mod starlark;
 
 fn main() {
-    test().unwrap()
+    if let Err(e) = cli::run_cli() {
+        println!("Error: {}", e);
+        std::process::exit(1);
+    }
 }

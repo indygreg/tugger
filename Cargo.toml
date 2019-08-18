@@ -8,6 +8,9 @@ homepage = "https://github.com/indygreg/PyOxidizer"
 repository = "https://github.com/indygreg/PyOxidizer.git"
 
 [dependencies]
+clap = "2.32"
+codemap = "0.1"
+codemap-diagnostic = "0.1"
 glob = "0.3"
 starlark = "0.2"
 starlark-repl = "0.2"
