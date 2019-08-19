@@ -3,6 +3,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub mod cli;
-
+pub mod snap;
 #[allow(unused)]
 pub mod starlark;

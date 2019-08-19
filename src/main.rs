@@ -28,6 +28,7 @@ a rather effective and powerful tool.
 */
 
 pub mod cli;
+pub mod snap;
 pub mod starlark;
 
 fn main() {
