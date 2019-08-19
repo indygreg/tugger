@@ -16,6 +16,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 pub mod eval;
+mod snap;
 mod values;
 
 use values::{FileManifest, Pipeline, SourceFile, Step, TarArchive};
@@ -108,6 +109,82 @@ fn resolve_include_exclude(cwd: &str, include: &Value, exclude: &Value) -> Value
         .collect();
 
     Ok(Value::new(List::from(paths_vec)))
+}
+
+fn optional_str_arg(name: &str, value: &Value) -> Result<Option<String>, ValueError> {
+    match value.get_type() {
+        "NoneType" => Ok(None),
+        "string" => Ok(Some(value.to_str())),
+        t => Err(RuntimeError {
+            code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+            message: format!(
+                "function expects an optional string for {}; got type {}",
+                name, t
+            ),
+            label: format!("expected type string; got {}", t),
+        }
+        .into()),
+    }
+}
+
+fn required_str_arg(name: &str, value: &Value) -> Result<String, ValueError> {
+    match value.get_type() {
+        "string" => Ok(value.to_str()),
+        t => Err(RuntimeError {
+            code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+            message: format!("function expects a string for {}; got type {}", name, t),
+            label: format!("expected type string; got {}", t),
+        }
+        .into()),
+    }
+}
+
+fn required_dict_arg(
+    arg_name: &str,
+    key_type: &str,
+    value_type: &str,
+    value: &Value,
+) -> Result<(), ValueError> {
+    match value.get_type() {
+        "dict" => {
+            for k in value.into_iter()? {
+                match k.get_type() {
+                    key_type => Ok(()),
+                    t => Err(RuntimeError {
+                        code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+                        message: format!(
+                            "dict {} expects keys of type {}; got {}",
+                            arg_name, key_type, t
+                        ),
+                        label: format!("expected type {}; got {}", key_type, t),
+                    }
+                    .into()),
+                }?;
+
+                let v = value.at(k.clone())?;
+
+                match v.get_type() {
+                    value_type => Ok(()),
+                    t => Err(RuntimeError {
+                        code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+                        message: format!(
+                            "dict {} expects values of type {}; got {}",
+                            arg_name, value_type, t,
+                        ),
+                        label: format!("expected type {}; got {}", value_type, t),
+                    }
+                    .into()),
+                }?;
+            }
+            Ok(())
+        }
+        t => Err(RuntimeError {
+            code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+            message: format!("function expects a dict for {}; got type {}", arg_name, t),
+            label: format!("expected type dict; got {}", t),
+        }
+        .into()),
+    }
 }
 
 starlark_module! { appdistribute_module =>
@@ -256,12 +333,17 @@ starlark_module! { appdistribute_module =>
                     let tar_archive: &TarArchive = raw_value.as_any().downcast_ref().unwrap();
                     Step::TarArchive(tar_archive.clone())
                 },
+                "Snap" => {
+                    let raw_value = step.0.borrow();
+                    let snap: &snap::Snap = raw_value.as_any().downcast_ref().unwrap();
+                    Step::Snap(snap.clone())
+                },
                 t => {
                     return Err(ValueError::TypeNotX {
                         object_type: t.to_string(),
                         op: "pipeline".to_string(),
                     });
-                }
+                },
             };
 
             res.push(step);
@@ -306,6 +388,7 @@ pub fn global_environment(context: &EnvironmentContext) -> Result<Environment, E
     let env = Environment::new("global");
 
     let env = appdistribute_module(global_functions(env));
+    let env = snap::snapcraft_module(env);
 
     // TODO perhaps capture these in a custom Environment type?
     env.set("CWD", Value::from(context.cwd.display().to_string()))?;

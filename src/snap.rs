@@ -105,4 +105,5 @@ pub struct Snap {
     pub snap_type: Option<String>,
     pub version: String,
     pub apps: HashMap<String, SnapApp>,
+    pub parts: HashMap<String, SnapPart>,
 }
