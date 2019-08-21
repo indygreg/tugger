@@ -187,7 +187,7 @@ fn required_dict_arg(
     }
 }
 
-starlark_module! { appdistribute_module =>
+starlark_module! { tugger_module =>
     /// glob(include, exclude=[])
     ///
     /// Resolve file patterns to files.
@@ -387,7 +387,7 @@ pub struct EnvironmentContext {
 pub fn global_environment(context: &EnvironmentContext) -> Result<Environment, EnvironmentError> {
     let env = Environment::new("global");
 
-    let env = appdistribute_module(global_functions(env));
+    let env = tugger_module(global_functions(env));
     let env = snap::snapcraft_module(env);
 
     // TODO perhaps capture these in a custom Environment type?

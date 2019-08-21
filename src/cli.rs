@@ -32,7 +32,7 @@ impl Drain for PrintlnDrain {
 }
 
 pub fn run_cli() -> Result<(), String> {
-    let matches = App::new("appdistribute")
+    let matches = App::new("tugger")
         .setting(AppSettings::ArgRequiredElseHelp)
         .version("0.1")
         .author("Gregory Szorc <gregory.szorc@gmail.com>")

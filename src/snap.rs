@@ -137,7 +137,7 @@ pub struct Snap {
 impl Snap {
     pub fn execute(&self, logger: &Logger) {
         let temp_dir =
-            tempdir::TempDir::new("appdistribute").expect("could not create temp directory");
+            tempdir::TempDir::new("tugger").expect("could not create temp directory");
 
         let copy_options = fs_extra::dir::CopyOptions::new();
         let source = vec!["/home/gps/src/pyoxidizer.git"];

@@ -1,11 +1,11 @@
 [package]
-name = "appdistribute"
+name = "tugger"
 version = "0.1.0"
 authors = ["Gregory Szorc <gregory.szorc@gmail.com>"]
 edition = "2018"
 license = "MPL-2.0"
-homepage = "https://github.com/indygreg/PyOxidizer"
-repository = "https://github.com/indygreg/PyOxidizer.git"
+homepage = "https://github.com/indygreg/tugger"
+repository = "https://github.com/indygreg/tugger.git"
 
 [dependencies]
 clap = "2.32"
