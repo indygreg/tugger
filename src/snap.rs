@@ -3,7 +3,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use serde::{Deserialize, Serialize};
+use slog::{warn, Logger};
 use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Write};
 
 /// Represents a snapcraft.yaml part.* entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -130,4 +132,42 @@ pub struct Snap {
     pub version: String,
     pub apps: HashMap<String, SnapApp>,
     pub parts: HashMap<String, SnapPart>,
+}
+
+impl Snap {
+    pub fn execute(&self, logger: &Logger) {
+        let temp_dir =
+            tempdir::TempDir::new("appdistribute").expect("could not create temp directory");
+
+        let copy_options = fs_extra::dir::CopyOptions::new();
+        let source = vec!["/home/gps/src/pyoxidizer.git"];
+        fs_extra::copy_items(&source, temp_dir.path(), &copy_options).expect("copy to succeed");
+
+        let snap_yaml_path = temp_dir.path().join("snapcraft.yaml");
+
+        let yaml = serde_yaml::to_vec(self).expect("unable to format YAML");
+
+        let mut fh = std::fs::File::create(&snap_yaml_path).unwrap();
+        fh.write_all(&yaml).expect("unable to write snap.yaml");
+
+        println!(
+            "{}",
+            serde_yaml::to_string(self).expect("could not format YAML")
+        );
+
+        let args: Vec<String> = vec!["--use-lxd".to_string()];
+
+        let mut cmd = std::process::Command::new("snapcraft")
+            .args(&args)
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .expect("error running snapcraft");
+        {
+            let stdout = cmd.stdout.as_mut().unwrap();
+            let reader = BufReader::new(stdout);
+            for line in reader.lines() {
+                warn!(logger, "{}", line.unwrap());
+            }
+        }
+    }
 }

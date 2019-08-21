@@ -63,7 +63,9 @@ impl EvalResult {
             info!(self.logger, "step: {:#?}", step);
 
             match step {
-                Step::Snap(snap) => {}
+                Step::Snap(snap) => {
+                    snap.snap.execute(&self.logger);
+                }
                 Step::TarArchive(ta) => {
                     ta.execute(&self.logger, &pipeline.dist_path)?;
                 }
