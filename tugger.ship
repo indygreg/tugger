@@ -1,0 +1,18 @@
+name = 'tugger'
+version = '0.1'
+summary = 'Application packaging and distribution tool'
+description = summary
+
+manifest = file_manifest_from_files(glob('**/*', exclude='target/**/*'))
+
+ubuntu_18_snap = snap(name, description, summary, version,
+    base='core18',
+    parts={name: snap_part(plugin='rust', source=".")},
+    apps={name: snap_app(command='bin/tugger')})
+
+steps = [
+    #tar_archive('%s-%s.tar' % (name, version), manifest),
+    snapcraft(ubuntu_18_snap, manifest)
+]
+
+pipeline('pipeline', steps=steps)

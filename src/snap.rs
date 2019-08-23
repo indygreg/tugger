@@ -4,8 +4,9 @@
 
 use serde::{Deserialize, Serialize};
 use slog::{warn, Logger};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
 
 /// Represents a snapcraft.yaml part.* entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,40 +135,46 @@ pub struct Snap {
     pub parts: HashMap<String, SnapPart>,
 }
 
-impl Snap {
-    pub fn execute(&self, logger: &Logger) {
-        let temp_dir =
-            tempdir::TempDir::new("tugger").expect("could not create temp directory");
+pub fn execute_snapcraft(
+    logger: &Logger,
+    snap: &Snap,
+    files: &BTreeMap<String, PathBuf>,
+    dist_path: &Path,
+) {
+    let temp_dir = tempdir::TempDir::new("tugger").expect("could not create temp directory");
+    let temp_dir_path = temp_dir.path();
 
-        let copy_options = fs_extra::dir::CopyOptions::new();
-        let source = vec!["/home/gps/src/pyoxidizer.git"];
-        fs_extra::copy_items(&source, temp_dir.path(), &copy_options).expect("copy to succeed");
+    let snap_path = temp_dir_path.join("snap");
+    std::fs::create_dir(&snap_path).expect("unable to create snap directory");
 
-        let snap_yaml_path = temp_dir.path().join("snapcraft.yaml");
+    super::filemanifest::install_files(temp_dir_path, files);
 
-        let yaml = serde_yaml::to_vec(self).expect("unable to format YAML");
+    let snapcraft_yaml_path = snap_path.join("snapcraft.yaml");
 
-        let mut fh = std::fs::File::create(&snap_yaml_path).unwrap();
-        fh.write_all(&yaml).expect("unable to write snap.yaml");
+    let yaml = serde_yaml::to_vec(snap).expect("unable to format YAML");
 
-        println!(
-            "{}",
-            serde_yaml::to_string(self).expect("could not format YAML")
-        );
+    let mut fh = std::fs::File::create(&snapcraft_yaml_path).unwrap();
+    fh.write_all(&yaml)
+        .expect(&format!("unable to write {:?}", &snapcraft_yaml_path));
 
-        let args: Vec<String> = vec!["--use-lxd".to_string()];
+    let output_path = dist_path.join(format!("{}-{}.snap", snap.name, snap.version));
+    let args = vec![
+        "snap".to_string(),
+        "--output".to_string(),
+        format!("{}", output_path.display()),
+    ];
 
-        let mut cmd = std::process::Command::new("snapcraft")
-            .args(&args)
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-            .expect("error running snapcraft");
-        {
-            let stdout = cmd.stdout.as_mut().unwrap();
-            let reader = BufReader::new(stdout);
-            for line in reader.lines() {
-                warn!(logger, "{}", line.unwrap());
-            }
+    let mut cmd = std::process::Command::new("snapcraft")
+        .args(&args)
+        .current_dir(temp_dir_path)
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .expect("error running snapcraft");
+    {
+        let stdout = cmd.stdout.as_mut().unwrap();
+        let reader = BufReader::new(stdout);
+        for line in reader.lines() {
+            warn!(logger, "{}", line.unwrap());
         }
     }
 }

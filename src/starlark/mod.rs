@@ -333,10 +333,10 @@ starlark_module! { tugger_module =>
                     let tar_archive: &TarArchive = raw_value.as_any().downcast_ref().unwrap();
                     Step::TarArchive(tar_archive.clone())
                 },
-                "Snap" => {
+                "Snapcraft" => {
                     let raw_value = step.0.borrow();
-                    let snap: &snap::Snap = raw_value.as_any().downcast_ref().unwrap();
-                    Step::Snap(snap.clone())
+                    let snapcraft: &snap::Snapcraft = raw_value.as_any().downcast_ref().unwrap();
+                    Step::Snapcraft(snapcraft.clone())
                 },
                 t => {
                     return Err(ValueError::TypeNotX {

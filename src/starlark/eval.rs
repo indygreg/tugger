@@ -16,6 +16,8 @@ pub struct EvalResult {
     /// The raw environment that was executed.
     pub env: Environment,
 
+    pub context: EnvironmentContext,
+
     logger: Logger,
 }
 
@@ -63,8 +65,13 @@ impl EvalResult {
             info!(self.logger, "step: {:#?}", step);
 
             match step {
-                Step::Snap(snap) => {
-                    snap.snap.execute(&self.logger);
+                Step::Snapcraft(snapcraft) => {
+                    crate::snap::execute_snapcraft(
+                        &self.logger,
+                        &snapcraft.snap.snap,
+                        &snapcraft.manifest.files,
+                        &self.context.dist_path,
+                    );
                 }
                 Step::TarArchive(ta) => {
                     ta.execute(&self.logger, &pipeline.dist_path)?;
@@ -95,6 +102,7 @@ pub fn evaluate_file(path: &Path, context: &EnvironmentContext) -> Result<EvalRe
 
     Ok(EvalResult {
         env,
+        context: context.clone(),
         logger: context.logger.clone(),
     })
 }
