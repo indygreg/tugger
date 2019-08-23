@@ -2,13 +2,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use super::values::FileManifest;
 use super::{optional_str_arg, required_dict_arg, required_str_arg};
 use starlark::environment::Environment;
 use starlark::starlark_module;
-use starlark::values::{default_compare, TypedValue, Value, ValueError, ValueResult};
+use starlark::values::{
+    default_compare, RuntimeError, TypedValue, Value, ValueError, ValueResult,
+    INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+};
 use starlark::{
-    any, immutable, not_supported, starlark_fun, starlark_signature, starlark_signature_extraction,
-    starlark_signatures,
+    any, check_type, immutable, not_supported, starlark_err, starlark_fun, starlark_signature,
+    starlark_signature_extraction, starlark_signatures,
 };
 use std::any::Any;
 use std::cmp::Ordering;
@@ -119,6 +123,45 @@ impl TypedValue for SnapApp {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Snapcraft {
+    pub snap: Snap,
+    pub manifest: FileManifest,
+}
+
+impl TypedValue for Snapcraft {
+    immutable!();
+    any!();
+    not_supported!(binop);
+    not_supported!(container);
+    not_supported!(function);
+    not_supported!(get_hash);
+    not_supported!(to_int);
+
+    fn to_str(&self) -> String {
+        format!(
+            "Snapcraft<snap={:#?}, manifest={:#?}>",
+            self.snap, self.manifest
+        )
+    }
+
+    fn to_repr(&self) -> String {
+        self.to_str()
+    }
+
+    fn get_type(&self) -> &'static str {
+        "Snapcraft"
+    }
+
+    fn to_bool(&self) -> bool {
+        true
+    }
+
+    fn compare(&self, other: &dyn TypedValue, recursion: u32) -> Result<Ordering, ValueError> {
+        default_compare(self, other)
+    }
+}
+
 starlark_module! { snapcraft_module =>
     snap_part(after=None, build_environment=None, build_packages=None, build_snaps=None,
               filesets=None, organize=None, override_build=None, override_prime=None,
@@ -212,25 +255,40 @@ starlark_module! { snapcraft_module =>
         }
 
         let snap = crate::snap::Snap {
-            adopt_info: optional_str_arg("adopt_info", adopt_info)?,
+            adopt_info: optional_str_arg("adopt_info", &adopt_info)?,
             assumes: None,
-            base: optional_str_arg("base", base)?,
-            confinement: optional_str_arg("confinement", confinement)?,
-            description: required_str_arg("description", description)?,
-            grade: optional_str_arg("grade", grade)?,
-            icon: optional_str_arg("icon", icon)?,
-            license: optional_str_arg("license", license)?,
-            name: required_str_arg("name", name)?,
+            base: optional_str_arg("base", &base)?,
+            confinement: optional_str_arg("confinement", &confinement)?,
+            description: required_str_arg("description", &description)?,
+            grade: optional_str_arg("grade", &grade)?,
+            icon: optional_str_arg("icon", &icon)?,
+            license: optional_str_arg("license", &license)?,
+            name: required_str_arg("name", &name)?,
             plugs: None,
             slots: None,
-            summary: required_str_arg("summary", summary)?,
-            title: optional_str_arg("title", title)?,
-            snap_type: optional_str_arg("snap_type", snap_type)?,
-            version: required_str_arg("version", version)?,
+            summary: required_str_arg("summary", &summary)?,
+            title: optional_str_arg("title", &title)?,
+            snap_type: optional_str_arg("snap_type", &snap_type)?,
+            version: required_str_arg("version", &version)?,
             apps: raw_apps,
             parts: raw_parts,
         };
 
         Ok(Value::new(Snap { snap }))
+    }
+
+    snapcraft(snap, manifest) {
+        check_type!(snap, "snapcraft", Snap);
+        check_type!(manifest, "snapcraft", FileManifest);
+
+        let raw_snap = snap.0.borrow();
+        let snap: &Snap = raw_snap.as_any().downcast_ref().unwrap();
+        let raw_manifest = manifest.0.borrow();
+        let manifest: &FileManifest = raw_manifest.as_any().downcast_ref().unwrap();
+
+        Ok(Value::new(Snapcraft {
+            snap: snap.clone(),
+            manifest: manifest.clone(),
+        }))
     }
 }
