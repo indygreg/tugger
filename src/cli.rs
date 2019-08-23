@@ -82,8 +82,10 @@ pub fn run_cli() -> Result<(), String> {
             let path = args.value_of("path").unwrap();
             let path = PathBuf::from(path);
 
+            let normalized = path.canonicalize().unwrap();
+
             let context = EnvironmentContext {
-                cwd: path.parent().unwrap().to_path_buf(),
+                cwd: normalized.parent().unwrap().to_path_buf(),
                 logger: logger.clone(),
                 dist_path,
             };
