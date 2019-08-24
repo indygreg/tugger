@@ -16,8 +16,8 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 pub mod eval;
-mod snap;
-mod values;
+pub mod snap;
+pub mod values;
 
 use values::{FileManifest, Pipeline, SourceFile, Step, TarArchive};
 
