@@ -148,32 +148,38 @@ fn required_dict_arg(
     match value.get_type() {
         "dict" => {
             for k in value.into_iter()? {
-                match k.get_type() {
-                    key_type => Ok(()),
-                    t => Err(RuntimeError {
+                if k.get_type() == key_type {
+                    Ok(())
+                } else {
+                    Err(RuntimeError {
                         code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
                         message: format!(
                             "dict {} expects keys of type {}; got {}",
-                            arg_name, key_type, t
+                            arg_name,
+                            key_type,
+                            k.get_type()
                         ),
-                        label: format!("expected type {}; got {}", key_type, t),
+                        label: format!("expected type {}; got {}", key_type, k.get_type()),
                     }
-                    .into()),
+                    .into())
                 }?;
 
                 let v = value.at(k.clone())?;
 
-                match v.get_type() {
-                    value_type => Ok(()),
-                    t => Err(RuntimeError {
+                if v.get_type() == value_type {
+                    Ok(())
+                } else {
+                    Err(RuntimeError {
                         code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
                         message: format!(
                             "dict {} expects values of type {}; got {}",
-                            arg_name, value_type, t,
+                            arg_name,
+                            value_type,
+                            v.get_type(),
                         ),
-                        label: format!("expected type {}; got {}", value_type, t),
+                        label: format!("expected type {}; got {}", value_type, v.get_type()),
                     }
-                    .into()),
+                    .into())
                 }?;
             }
             Ok(())
