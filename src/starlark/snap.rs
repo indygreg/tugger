@@ -48,7 +48,7 @@ impl TypedValue for Snap {
         true
     }
 
-    fn compare(&self, other: &dyn TypedValue, recursion: u32) -> Result<Ordering, ValueError> {
+    fn compare(&self, other: &dyn TypedValue, _recursion: u32) -> Result<Ordering, ValueError> {
         default_compare(self, other)
     }
 }
@@ -83,7 +83,7 @@ impl TypedValue for SnapPart {
         true
     }
 
-    fn compare(&self, other: &dyn TypedValue, recursion: u32) -> Result<Ordering, ValueError> {
+    fn compare(&self, other: &dyn TypedValue, _recursion: u32) -> Result<Ordering, ValueError> {
         default_compare(self, other)
     }
 }
@@ -118,7 +118,7 @@ impl TypedValue for SnapApp {
         true
     }
 
-    fn compare(&self, other: &dyn TypedValue, recursion: u32) -> Result<Ordering, ValueError> {
+    fn compare(&self, other: &dyn TypedValue, _recursion: u32) -> Result<Ordering, ValueError> {
         default_compare(self, other)
     }
 }
@@ -157,7 +157,7 @@ impl TypedValue for Snapcraft {
         true
     }
 
-    fn compare(&self, other: &dyn TypedValue, recursion: u32) -> Result<Ordering, ValueError> {
+    fn compare(&self, other: &dyn TypedValue, _recursion: u32) -> Result<Ordering, ValueError> {
         default_compare(self, other)
     }
 }
