@@ -170,6 +170,41 @@ starlark_module! { snapcraft_module =>
               source_depth=None, source_subdir=None, source_tag=None, source_type=None, stage=None,
               stage_packages=None, stage_snaps=None) {
 
+        // TODO support these arguments.
+        if after.get_type() != "NoneType" {
+            eprintln!("after argument to snap_part() not yet supported");
+        }
+        if build_environment.get_type() != "NoneType" {
+            eprintln!("build_environment argument to snap_part() not yet supported");
+        }
+        if build_packages.get_type() != "NoneType" {
+            eprintln!("build_packages argument to snap_part() not yet supported");
+        }
+        if build_snaps.get_type() != "NoneType" {
+            eprintln!("build_snaps argument to snap_part() not yet supported");
+        }
+        if filesets.get_type() != "NoneType" {
+            eprintln!("filesets argument to snap_part() not yet supported");
+        }
+        if organize.get_type() != "NoneType" {
+            eprintln!("organize argument to snap_part() not yet supported");
+        }
+        if prime.get_type() != "NoneType" {
+            eprintln!("prime argument to snap_part() not yet supported");
+        }
+        if source_depth.get_type() != "NoneType" {
+            eprintln!("source_depth argument to snap_part() not yet supported");
+        }
+        if stage.get_type() != "NoneType" {
+            eprintln!("stage argument to snap_part() not yet supported");
+        }
+        if stage_packages.get_type() != "NoneType" {
+            eprintln!("stage_packages argument to snap_part() not yet supported");
+        }
+        if stage_snaps.get_type() != "NoneType" {
+            eprintln!("stage_snaps argument to snap_part() not yet supported");
+        }
+
         let part = crate::snap::SnapPart {
             after: None,
             build_environment: None,
@@ -205,6 +240,26 @@ starlark_module! { snapcraft_module =>
              plugs=None, post_stop_command=None, restart_condition=None, slots=None,
              socket=None, socket_module=None, stop_command=None, stop_timeout=None) {
 
+        // TODO support these arguments.
+        if command_chain.get_type() != "NoneType" {
+            eprintln!("command_chain argument to snap_app() not yet supported");
+        }
+        if environment.get_type() != "NoneType" {
+            eprintln!("environment argument to snap_app() not yet supported");
+        }
+        if plugs.get_type() != "NoneType" {
+            eprintln!("plugs argument to snap_app() not yet supported");
+        }
+        if slots.get_type() != "NoneType" {
+            eprintln!("slots argument to snap_app() not yet supported");
+        }
+        if socket.get_type() != "NoneType" {
+            eprintln!("socket argument to snap_app() not yet supported");
+        }
+        if socket_module.get_type() != "NoneType" {
+            eprintln!("socket_module argument to snap_app() not yet supported");
+        }
+
         let app = crate::snap::SnapApp {
             adapter: optional_str_arg("adapter", &adapter)?,
             command: optional_str_arg("command", &command)?,
@@ -233,6 +288,17 @@ starlark_module! { snapcraft_module =>
 
         required_dict_arg("apps", "string", "SnapApp", &apps)?;
         required_dict_arg("parts", "string", "SnapPart", &parts)?;
+
+        // TODO support these arguments.
+        if assumes.get_type() != "NoneType" {
+            eprintln!("assumes argument to snap() not yet supported");
+        }
+        if plugs.get_type() != "NoneType" {
+            eprintln!("plugs argument to snap() not yet supported");
+        }
+        if slots.get_type() != "NoneType" {
+            eprintln!("slots argument to snap() not yet supported");
+        }
 
         let mut raw_apps = HashMap::new();
 
