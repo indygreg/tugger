@@ -4,6 +4,7 @@
 
 pub mod cli;
 pub mod filemanifest;
+pub mod glob;
 pub mod snap;
 #[allow(unused)]
 pub mod starlark;

@@ -4,6 +4,7 @@
 
 pub mod cli;
 pub mod filemanifest;
+pub mod glob;
 pub mod snap;
 pub mod starlark;
 
