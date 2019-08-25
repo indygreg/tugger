@@ -11,6 +11,36 @@ files.
 The custom Starlark primitives provided by the dialect are documented
 in the sections below.
 
+## Global Variables
+
+The Starlark envrionment has a number of special global variables which
+are always defined.
+
+### `CWD`
+
+The current working directory. This is a `str` path holding the
+currently executing file.
+
+### `DIST_PATH`
+
+A `str` holding the filesystem path where output artifacts should be
+created.
+
+### `PIPELINES`
+
+A `list` of `Pipeline` instances.
+
+This list is automatically appended to when a new pipeline is created.
+You typically do not need to use this data structure.
+
+### `GIT_COMMIT`
+
+If executing from a Git repository, this will be the `str` value of the
+Git commit ID the working directory is based on.
+
+If not executing from a Git repository or we could not detect a value,
+will be set to `None`.
+
 ## File Representation and Manipulation
 
 ### `SourceFile`
