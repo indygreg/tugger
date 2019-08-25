@@ -5,8 +5,10 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+pub type FileManifest = BTreeMap<String, PathBuf>;
+
 /// Install files in a files manifest to a destination directory.
-pub fn install_files(dest_dir: &Path, files: &BTreeMap<String, PathBuf>) {
+pub fn install_files(dest_dir: &Path, files: &FileManifest) {
     for (key, source_path) in files.iter() {
         let rel_path = PathBuf::from(key);
         let rel_dir = rel_path.parent().unwrap();

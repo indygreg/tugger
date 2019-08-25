@@ -2,11 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use crate::filemanifest::FileManifest;
 use serde::{Deserialize, Serialize};
 use slog::{warn, Logger};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// Represents a snapcraft.yaml part.* entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -141,12 +142,7 @@ pub struct Snap {
 /// `snap` represents the `snapcraft.yaml` file to create.
 /// `files` defines a manifest of files to constitute the build environment.
 /// `dist_path` is the output path.
-pub fn execute_snapcraft(
-    logger: &Logger,
-    snap: &Snap,
-    files: &BTreeMap<String, PathBuf>,
-    dist_path: &Path,
-) {
+pub fn execute_snapcraft(logger: &Logger, snap: &Snap, files: &FileManifest, dist_path: &Path) {
     let temp_dir = tempdir::TempDir::new("tugger").expect("could not create temp directory");
     let temp_dir_path = temp_dir.path();
 

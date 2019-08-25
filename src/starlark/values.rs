@@ -8,7 +8,7 @@ use starlark::values::{default_compare, TypedValue, Value, ValueError, ValueResu
 use starlark::{any, immutable, not_supported};
 use std::any::Any;
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
@@ -53,7 +53,7 @@ impl TypedValue for SourceFile {
 /// metadata, such as the owner, permissions, etc. For now things are simple.
 #[derive(Debug, Default, Clone)]
 pub struct FileManifest {
-    pub files: BTreeMap<String, PathBuf>,
+    pub files: crate::filemanifest::FileManifest,
 }
 
 impl TypedValue for FileManifest {
