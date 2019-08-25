@@ -11,6 +11,11 @@ build_path = CWD + '/build'
 tugger_source_files = glob('**/*', exclude=['.git/**/*', 'build/**/*', 'target/**/*'])
 tugger_source_manifest = file_manifest_from_files(tugger_source_files)
 
+linux_system_install_layout = file_manifest_from_files(
+    glob('target/release/tugger'),
+    relative_to=CWD + '/target/release/',
+    prefix='usr/bin')
+
 snap_yaml = snap(name, description, summary, version,
     base='core18',
     parts={name: snap_part(plugin='rust', source=".")},
@@ -45,19 +50,26 @@ pipeline(
     ],
 )
 
-debian_binary_package = debian_control_binary_package(
-    package=name,
-    architecture='any',
-    description=description,
-)
-
-base_debian_control = debian_control(
-    source=name,
-    maintainer=maintainer,
-    standards_version='4.1.3',
-    homepage=homepage,
-    vcs_type='Git',
-    vcs_value=vcs_url,
-    vcs_browser=vcs_url,
-    binary_packages=[debian_binary_package],
+pipeline(
+    'deb',
+    steps=[
+        debian_deb_archive(
+            debian_control_binary_package(
+                package=name,
+                version=version,
+                architecture='amd64',
+                maintainer=maintainer,
+                description=description,
+                homepage=homepage,
+                section='utils',
+                priority='optional',
+                depends=[
+                    'libc6 (>= 2.18)',
+                    'libgcc1 (>= 1:4.2)',
+                    'libssl1.1 (>= 1.1)',
+                    'zlib1g (>= 1.2)',
+                ],
+            ),
+            linux_system_install_layout),
+    ]
 )

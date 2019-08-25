@@ -6,7 +6,9 @@ use crate::filemanifest::FileManifest;
 use ar::{Builder, Header};
 use debian::package::ControlFile;
 use is_executable::IsExecutable;
+use slog::{warn, Logger};
 use std::io::Write;
+use std::path::Path;
 use tar::Header as TarHeader;
 
 /// Produce data for a .deb package file.
@@ -196,4 +198,28 @@ where
         .or_else(|e| Err(format!("unable to finish archive: {}", e)))?;
 
     Ok(())
+}
+
+pub fn execute_deb_archive(
+    logger: &Logger,
+    dist_path: &Path,
+    control_paragraph: &debian::package::ControlParagraph,
+    files: &FileManifest,
+) -> Result<(), String> {
+    let basename = format!(
+        "{}_{}.deb",
+        control_paragraph.get_entry("Package").unwrap(),
+        control_paragraph.get_entry("Version").unwrap()
+    );
+
+    let dest_path = dist_path.join(basename);
+    warn!(logger, "writing Debian package to {}", dest_path.display());
+
+    let mut control_file = ControlFile::new();
+    control_file.add_paragraph(control_paragraph.clone());
+
+    let fh = std::fs::File::create(&dest_path)
+        .or_else(|e| Err(format!("unable to create {}: {}", dest_path.display(), e)))?;
+
+    build_deb(fh, &control_file, files)
 }

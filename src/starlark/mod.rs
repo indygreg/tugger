@@ -276,6 +276,23 @@ fn resolve_include_exclude(cwd: &str, include: &Value, exclude: &Value) -> Value
     Ok(Value::new(List::from(paths_vec)))
 }
 
+fn required_type_arg(arg_name: &str, arg_type: &str, value: &Value) -> Result<(), ValueError> {
+    let t = value.get_type();
+    if t == arg_type {
+        Ok(())
+    } else {
+        Err(RuntimeError {
+            code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+            message: format!(
+                "function expects a {} for {}; got type {}",
+                arg_type, arg_name, t
+            ),
+            label: format!("expect type {}; got {}", arg_type, t),
+        }
+        .into())
+    }
+}
+
 fn optional_str_arg(name: &str, value: &Value) -> Result<Option<String>, ValueError> {
     match value.get_type() {
         "NoneType" => Ok(None),
@@ -496,7 +513,13 @@ starlark_module! { tugger_module =>
         let mut res = Vec::new();
 
         for step in steps.into_iter()? {
+            // TODO use duck typing here.
             let step = match step.get_type() {
+                "DebianDebArchive" => {
+                    let raw_value = step.0.borrow();
+                    let archive: &debian::DebianDebArchive = raw_value.as_any().downcast_ref().unwrap();
+                    Step::DebianDebArchive(archive.clone())
+                },
                 "TarArchive" => {
                     let raw_value = step.0.borrow();
                     let tar_archive: &TarArchive = raw_value.as_any().downcast_ref().unwrap();

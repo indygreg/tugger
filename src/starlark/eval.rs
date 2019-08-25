@@ -63,6 +63,14 @@ impl EvalResult {
         warn!(self.logger, "executing pipeline: {}", pipeline.name);
         for step in &pipeline.steps {
             match step {
+                Step::DebianDebArchive(deb) => {
+                    crate::debian::execute_deb_archive(
+                        &self.logger,
+                        &pipeline.dist_path,
+                        &deb.control_file.paragraph,
+                        &deb.files.files,
+                    )?;
+                }
                 Step::Snapcraft(snapcraft) => {
                     crate::snap::execute_snapcraft(
                         &self.logger,

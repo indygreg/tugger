@@ -168,6 +168,7 @@ impl TypedValue for TarArchive {
 /// Represents a generic step.
 #[derive(Debug, Clone)]
 pub enum Step {
+    DebianDebArchive(super::debian::DebianDebArchive),
     Snapcraft(super::snap::Snapcraft),
     TarArchive(TarArchive),
 }
