@@ -14,12 +14,34 @@ ubuntu_18_snap = snap(name, description, summary, version,
     apps={name: snap_app(command='bin/tugger')})
 
 snap_build_path = '%s/snap' % build_path
+snap_name = '%s_%s.amd64.snap' % (name, version)
 
-ubuntu_18_snap_build = snapcraft(['snap'], ubuntu_18_snap, snap_build_path, tugger_source_manifest)
+ubuntu_18_snap_build = snapcraft(
+    ['snap', '-o', snap_name],
+    ubuntu_18_snap,
+    snap_build_path,
+    tugger_source_manifest,
+)
+ubuntu_18_snap_push = snapcraft(
+    ['push', '--release', 'edge', snap_name],
+    ubuntu_18_snap,
+    snap_build_path,
+    tugger_source_manifest,
+    purge_build=False,
+)
+ubuntu_18_snap_sign = snapcraft(
+    ['sign-build', snap_name],
+    ubuntu_18_snap,
+    snap_build_path,
+    tugger_source_manifest,
+    purge_build=False,
+)
 
 steps = [
     #tar_archive('%s-%s.tar' % (name, version), tugger_source_manifest),
     ubuntu_18_snap_build,
+    ubuntu_18_snap_push,
+    ubuntu_18_snap_sign,
 ]
 
 pipeline('pipeline', steps=steps)

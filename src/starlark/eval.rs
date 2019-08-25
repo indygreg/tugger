@@ -72,6 +72,7 @@ impl EvalResult {
                         &snapcraft.snap.snap,
                         &snapcraft.build_path,
                         &snapcraft.manifest.files,
+                        snapcraft.purge_build,
                     )?;
                 }
                 Step::TarArchive(ta) => {

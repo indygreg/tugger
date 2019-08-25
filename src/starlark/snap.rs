@@ -130,6 +130,7 @@ pub struct Snapcraft {
     pub snap: Snap,
     pub build_path: PathBuf,
     pub manifest: FileManifest,
+    pub purge_build: bool,
 }
 
 impl TypedValue for Snapcraft {
@@ -346,11 +347,12 @@ starlark_module! { snapcraft_module =>
         Ok(Value::new(Snap { snap }))
     }
 
-    snapcraft(args, snap, build_path, manifest) {
+    snapcraft(args, snap, build_path, manifest, purge_build=true) {
         required_list_arg("args", "string", &args)?;
         check_type!(snap, "snapcraft", Snap);
         check_type!(build_path, "snapcraft", string);
         check_type!(manifest, "snapcraft", FileManifest);
+        check_type!(purge_build, "snapcraft", bool);
 
         let raw_args = args.into_iter()?.map(|a| a.to_string()).collect();
         let raw_snap = snap.0.borrow();
@@ -363,6 +365,7 @@ starlark_module! { snapcraft_module =>
             snap: snap.clone(),
             build_path: PathBuf::from(build_path.to_string()),
             manifest: manifest.clone(),
+            purge_build: purge_build.to_bool(),
         }))
     }
 }

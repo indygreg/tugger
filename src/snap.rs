@@ -145,7 +145,7 @@ pub struct Snap {
 /// `files` defines a manifest of files to constitute the build environment.
 ///
 /// If `build_path` exists, its content will be replaced by the content of
-/// `files`.
+/// `files` if `purge_build` is true.
 ///
 /// We need to provide an explicit and stable path to execute in because
 /// snapcraft mounts the path into the build environment and isn't smart
@@ -158,6 +158,7 @@ pub fn execute_snapcraft(
     snap: &Snap,
     build_path: &Path,
     files: &FileManifest,
+    purge_build: bool,
 ) -> Result<(), String> {
     if !build_path.exists() {
         std::fs::create_dir_all(build_path)
@@ -165,22 +166,27 @@ pub fn execute_snapcraft(
     }
 
     // Remove existing content of build directory and replace with our own.
-    for entry in walkdir::WalkDir::new(build_path).contents_first(true) {
-        let entry = entry.or_else(|_| Err("could not resolve directory entry".to_string()))?;
-        let p = entry.path();
+    if purge_build {
+        for entry in walkdir::WalkDir::new(build_path).contents_first(true) {
+            let entry = entry.or_else(|_| Err("could not resolve directory entry".to_string()))?;
+            let p = entry.path();
 
-        if entry.path_is_symlink() || p.is_file() {
-            std::fs::remove_file(p)
-                .or_else(|_| Err(format!("unable to remove {}", p.display())))?;
-        } else {
-            std::fs::remove_dir(p).or_else(|_| Err(format!("unable to remove {}", p.display())))?;
+            if entry.path_is_symlink() || p.is_file() {
+                std::fs::remove_file(p)
+                    .or_else(|_| Err(format!("unable to remove {}", p.display())))?;
+            } else {
+                std::fs::remove_dir(p)
+                    .or_else(|_| Err(format!("unable to remove {}", p.display())))?;
+            }
         }
     }
 
     super::filemanifest::install_files(build_path, files);
 
     let snap_path = build_path.join("snap");
-    std::fs::create_dir(&snap_path).expect("unable to create snap directory");
+    if !snap_path.exists() {
+        std::fs::create_dir(&snap_path).expect("unable to create snap directory");
+    }
     let snapcraft_yaml_path = snap_path.join("snapcraft.yaml");
 
     let yaml = serde_yaml::to_vec(snap).expect("unable to format YAML");

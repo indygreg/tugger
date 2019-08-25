@@ -81,7 +81,7 @@ blocks of `pipelines`.
 Actions are created by calling functions that define an action. These
 functions are described below.
 
-### `snapcraft(args, snap, build_path, manifest)`
+### `snapcraft(args, snap, build_path, manifest, purge_build=True)`
 
 Define an invocation of `snapcraft`.
 
@@ -96,7 +96,8 @@ The `snap` argument is a `Snap` instance. See the `snap()` function for
 how to create one.
 
 `build_path` is the path to use when invoking `snapcraft`. If the path
-exists, its contents will be replaced by the content of `manifest`.
+exists, its contents will be replaced by the content of `manifest`. If
+`purge_build` is True, existing files will be removed.
 
 `manifest` is a `FileManifest` for the snap build environment. Then
 `snapcraft` is invoked, it will be done so from a temporary directory
@@ -157,7 +158,6 @@ the `snap-type` key would be defined by the `snap_type` argument.
 
 use super::glob::evaluate_glob;
 use starlark::environment::{Environment, EnvironmentError};
-use starlark::stdlib::global_functions;
 use starlark::values::list::List;
 use starlark::values::{
     RuntimeError, Value, ValueError, ValueResult, INCORRECT_PARAMETER_TYPE_ERROR_CODE,
@@ -515,9 +515,8 @@ pub struct EnvironmentContext {
 
 /// Obtain a Starlark environment for evaluating distribution configuration.
 pub fn global_environment(context: &EnvironmentContext) -> Result<Environment, EnvironmentError> {
-    let env = Environment::new("global");
-
-    let env = tugger_module(global_functions(env));
+    let env = starlark::stdlib::global_environment();
+    let env = tugger_module(env);
     let env = snap::snapcraft_module(env);
 
     // TODO perhaps capture these in a custom Environment type?
