@@ -39,6 +39,7 @@ Starlark dialect.
 */
 
 pub mod cli;
+pub mod debian;
 pub mod filemanifest;
 pub mod glob;
 pub mod snap;

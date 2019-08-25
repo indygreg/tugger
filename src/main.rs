@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub mod cli;
+pub mod debian;
 pub mod filemanifest;
 pub mod glob;
 pub mod snap;
