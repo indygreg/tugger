@@ -167,6 +167,11 @@ pub fn execute_snapcraft(
 
     // Remove existing content of build directory and replace with our own.
     if purge_build {
+        warn!(
+            logger,
+            "purging existing content from {}",
+            build_path.display()
+        );
         for entry in walkdir::WalkDir::new(build_path).contents_first(true) {
             let entry = entry.or_else(|_| Err("could not resolve directory entry".to_string()))?;
             let p = entry.path();
