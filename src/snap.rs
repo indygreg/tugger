@@ -62,6 +62,7 @@ pub struct SnapPart {
     pub stage_snaps: Option<Vec<String>>,
 }
 
+/// Represents a snapcraft.yaml app.* entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SnapApp {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -99,7 +100,7 @@ pub struct SnapApp {
     pub stop_timeout: Option<String>,
 }
 
-/// Represents a snapcraft.yaml file content.
+/// Represents a snapcraft.yaml file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snap {
     // top-level metadata (https://snapcraft.io/docs/snapcraft-top-level-metadata).
@@ -135,6 +136,11 @@ pub struct Snap {
     pub parts: HashMap<String, SnapPart>,
 }
 
+/// Execute `snapcraft`.
+///
+/// `snap` represents the `snapcraft.yaml` file to create.
+/// `files` defines a manifest of files to constitute the build environment.
+/// `dist_path` is the output path.
 pub fn execute_snapcraft(
     logger: &Logger,
     snap: &Snap,
