@@ -6,6 +6,7 @@ edition = "2018"
 license = "MPL-2.0"
 homepage = "https://github.com/indygreg/tugger"
 repository = "https://github.com/indygreg/tugger.git"
+readme = "README.md"
 
 [dependencies]
 clap = "2.32"
