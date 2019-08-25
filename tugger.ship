@@ -2,6 +2,9 @@ name = 'tugger'
 version = '0.1'
 summary = 'Application packaging and distribution tool'
 description = summary
+maintainer = 'Gregory Szorc <gregory.szorc@gmail.com>'
+homepage = 'https://github.com/indygreg/tugger'
+vcs_url = 'https://github.com/indygreg/tugger.git'
 
 build_path = CWD + '/build'
 
@@ -40,4 +43,21 @@ pipeline(
             purge_build=False,
         ),
     ],
+)
+
+debian_binary_package = debian_control_binary_package(
+    package=name,
+    architecture='any',
+    description=description,
+)
+
+base_debian_control = debian_control(
+    source=name,
+    maintainer=maintainer,
+    standards_version='4.1.3',
+    homepage=homepage,
+    vcs_type='Git',
+    vcs_value=vcs_url,
+    vcs_browser=vcs_url,
+    binary_packages=[debian_binary_package],
 )

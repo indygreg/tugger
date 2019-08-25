@@ -199,6 +199,7 @@ use starlark::{
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
+pub mod debian;
 pub mod eval;
 pub mod snap;
 pub mod values;
@@ -388,6 +389,14 @@ fn required_list_arg(arg_name: &str, value_type: &str, value: &Value) -> Result<
     }
 }
 
+fn optional_list_arg(arg_name: &str, value_type: &str, value: &Value) -> Result<(), ValueError> {
+    if value.get_type() == "NoneType" {
+        return Ok(());
+    }
+
+    required_list_arg(arg_name, value_type, value)
+}
+
 starlark_module! { tugger_module =>
     glob(env env, include, exclude=None) {
         let cwd = env.get("CWD").unwrap().to_str();
@@ -547,6 +556,7 @@ pub struct EnvironmentContext {
 pub fn global_environment(context: &EnvironmentContext) -> Result<Environment, EnvironmentError> {
     let env = starlark::stdlib::global_environment();
     let env = tugger_module(env);
+    let env = debian::debian_module(env);
     let env = snap::snapcraft_module(env);
 
     // TODO perhaps capture these in a custom Environment type?
