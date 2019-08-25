@@ -527,5 +527,23 @@ pub fn global_environment(context: &EnvironmentContext) -> Result<Environment, E
     )?;
     env.set("PIPELINES", List::new())?;
 
+    let mut git_commit: Option<String> = None;
+
+    if let Ok(repo) = git2::Repository::discover(&context.cwd) {
+        if let Ok(git_ref) = repo.head() {
+            if let Ok(commit) = git_ref.peel_to_commit() {
+                git_commit = Some(commit.id().to_string());
+            }
+        }
+    }
+
+    env.set(
+        "GIT_COMMIT",
+        match git_commit {
+            Some(v) => Value::from(v),
+            None => Value::from(None),
+        },
+    )?;
+
     Ok(env)
 }
