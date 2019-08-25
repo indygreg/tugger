@@ -43,7 +43,15 @@ pub fn run_cli() -> Result<(), String> {
         )
         .subcommand(
             SubCommand::with_name("run")
-                .about("Evaluate a build file")
+                .about("Execute a tugger configuration file")
+                .arg(
+                    Arg::with_name("pipelines")
+                        .long("pipeline")
+                        .takes_value(true)
+                        .multiple(true)
+                        .value_name("pipeline")
+                        .help("Name of pipeline to execute"),
+                )
                 .arg(
                     Arg::with_name("path")
                         .value_name("PATH")
@@ -98,7 +106,15 @@ pub fn run_cli() -> Result<(), String> {
                 Err(e) => Err(format!("error evaluating {}: {:#?}", path.display(), e)),
             }?;
 
-            eval_result.execute_all_pipelines()
+            if let Some(pipelines) = args.values_of("pipelines") {
+                for pipeline in pipelines {
+                    eval_result.execute_pipeline(pipeline)?;
+                }
+            } else {
+                eval_result.execute_all_pipelines()?;
+            }
+
+            Ok(())
         }
         _ => Err("invalid sub-command".to_string()),
     }
