@@ -46,8 +46,8 @@ pub fn run_cli() -> Result<(), String> {
                 .about("Evaluate a build file")
                 .arg(
                     Arg::with_name("path")
-                        .required(true)
                         .value_name("PATH")
+                        .default_value("tugger.ship")
                         .help("Path to file to evaluate"),
                 ),
         )
