@@ -6,7 +6,7 @@ use super::values::{Pipeline, Step};
 use super::EnvironmentContext;
 use codemap::CodeMap;
 use codemap_diagnostic::{Diagnostic, Level};
-use slog::{info, warn, Logger};
+use slog::{warn, Logger};
 use starlark::environment::Environment;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -62,8 +62,6 @@ impl EvalResult {
     fn execute_raw_pipeline(&self, pipeline: &Pipeline) -> Result<(), String> {
         warn!(self.logger, "executing pipeline: {}", pipeline.name);
         for step in &pipeline.steps {
-            info!(self.logger, "step: {:#?}", step);
-
             match step {
                 Step::Snapcraft(snapcraft) => {
                     crate::snap::execute_snapcraft(
