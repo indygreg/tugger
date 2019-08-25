@@ -3,7 +3,9 @@ version = '0.1'
 summary = 'Application packaging and distribution tool'
 description = summary
 
-tugger_source_files = glob('**/*', exclude=['.git/**/*', 'target/**/*'])
+build_path = CWD + '/build'
+
+tugger_source_files = glob('**/*', exclude=['.git/**/*', 'build/**/*', 'target/**/*'])
 tugger_source_manifest = file_manifest_from_files(tugger_source_files)
 
 ubuntu_18_snap = snap(name, description, summary, version,
@@ -11,9 +13,13 @@ ubuntu_18_snap = snap(name, description, summary, version,
     parts={name: snap_part(plugin='rust', source=".")},
     apps={name: snap_app(command='bin/tugger')})
 
+snap_build_path = '%s/snap' % build_path
+
+ubuntu_18_snap_build = snapcraft(['snap'], ubuntu_18_snap, snap_build_path, tugger_source_manifest)
+
 steps = [
     #tar_archive('%s-%s.tar' % (name, version), tugger_source_manifest),
-    snapcraft(ubuntu_18_snap, tugger_source_manifest)
+    ubuntu_18_snap_build,
 ]
 
 pipeline('pipeline', steps=steps)

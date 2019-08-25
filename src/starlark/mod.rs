@@ -81,20 +81,32 @@ blocks of `pipelines`.
 Actions are created by calling functions that define an action. These
 functions are described below.
 
-### `snapcraft(snap, manifest)`
+### `snapcraft(args, snap, build_path, manifest)`
 
 Define an invocation of `snapcraft`.
 
-`snapcraft` is a packaging tool used to produdce snaps. This function
-produces an action that will translate to invocation of the
-`snapcraft snap` command.
+`snapcraft` is a packaging tool used to produce and interface with snaps.
+This function produces an action that will translate to invocation of the
+`snapcraft` command.
+
+The `args` argument is a `list` of `str` defining arguments to the
+`snapcraft` command.
 
 The `snap` argument is a `Snap` instance. See the `snap()` function for
 how to create one.
 
+`build_path` is the path to use when invoking `snapcraft`. If the path
+exists, its contents will be replaced by the content of `manifest`.
+
 `manifest` is a `FileManifest` for the snap build environment. Then
 `snapcraft` is invoked, it will be done so from a temporary directory
 composed of the files defined by this manifest.
+
+Having to define `build_path` is a bit unfortunate. But various `snapcraft`
+behavior relies on mounting a local filesystem path into a virtual machine,
+container, etc, and `snapcraft` isn't smart enough to realize that the source
+directory changed between invocations. By providing a consistent path between
+invocations, we can work around this behavior.
 
 ### `tar_archive(filename, manifest)`
 
@@ -310,6 +322,37 @@ fn required_dict_arg(
             code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
             message: format!("function expects a dict for {}; got type {}", arg_name, t),
             label: format!("expected type dict; got {}", t),
+        }
+        .into()),
+    }
+}
+
+fn required_list_arg(arg_name: &str, value_type: &str, value: &Value) -> Result<(), ValueError> {
+    match value.get_type() {
+        "list" => {
+            for v in value.into_iter()? {
+                if v.get_type() == value_type {
+                    Ok(())
+                } else {
+                    Err(RuntimeError {
+                        code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+                        message: format!(
+                            "list {} expects values of type {}; got {}",
+                            arg_name,
+                            value_type,
+                            v.get_type()
+                        ),
+                        label: format!("expected type {}; got {}", value_type, v.get_type()),
+                    }
+                    .into())
+                }?;
+            }
+            Ok(())
+        }
+        t => Err(RuntimeError {
+            code: INCORRECT_PARAMETER_TYPE_ERROR_CODE,
+            message: format!("function expects a list for {}; got type {}", arg_name, t),
+            label: format!("expected type list; got {}", t),
         }
         .into()),
     }

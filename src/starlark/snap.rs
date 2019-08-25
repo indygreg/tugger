@@ -3,7 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use super::values::FileManifest;
-use super::{optional_str_arg, required_dict_arg, required_str_arg};
+use super::{optional_str_arg, required_dict_arg, required_list_arg, required_str_arg};
 use starlark::environment::Environment;
 use starlark::starlark_module;
 use starlark::values::{
@@ -17,6 +17,7 @@ use starlark::{
 use std::any::Any;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct Snap {
@@ -125,7 +126,9 @@ impl TypedValue for SnapApp {
 
 #[derive(Debug, Clone)]
 pub struct Snapcraft {
+    pub args: Vec<String>,
     pub snap: Snap,
+    pub build_path: PathBuf,
     pub manifest: FileManifest,
 }
 
@@ -343,17 +346,22 @@ starlark_module! { snapcraft_module =>
         Ok(Value::new(Snap { snap }))
     }
 
-    snapcraft(snap, manifest) {
+    snapcraft(args, snap, build_path, manifest) {
+        required_list_arg("args", "string", &args)?;
         check_type!(snap, "snapcraft", Snap);
+        check_type!(build_path, "snapcraft", string);
         check_type!(manifest, "snapcraft", FileManifest);
 
+        let raw_args = args.into_iter()?.map(|a| a.to_string()).collect();
         let raw_snap = snap.0.borrow();
         let snap: &Snap = raw_snap.as_any().downcast_ref().unwrap();
         let raw_manifest = manifest.0.borrow();
         let manifest: &FileManifest = raw_manifest.as_any().downcast_ref().unwrap();
 
         Ok(Value::new(Snapcraft {
+            args: raw_args,
             snap: snap.clone(),
+            build_path: PathBuf::from(build_path.to_string()),
             manifest: manifest.clone(),
         }))
     }

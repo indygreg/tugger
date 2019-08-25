@@ -139,18 +139,48 @@ pub struct Snap {
 
 /// Execute `snapcraft`.
 ///
+/// `args` represents the arguments to the `snapcraft` executable.
 /// `snap` represents the `snapcraft.yaml` file to create.
+/// `build_path` is the directory to operate in.
 /// `files` defines a manifest of files to constitute the build environment.
-/// `dist_path` is the output path.
-pub fn execute_snapcraft(logger: &Logger, snap: &Snap, files: &FileManifest, dist_path: &Path) {
-    let temp_dir = tempdir::TempDir::new("tugger").expect("could not create temp directory");
-    let temp_dir_path = temp_dir.path();
+///
+/// If `build_path` exists, its content will be replaced by the content of
+/// `files`.
+///
+/// We need to provide an explicit and stable path to execute in because
+/// snapcraft mounts the path into the build environment and isn't smart
+/// enough to detect when the source path changes between invocations. By
+/// using a stable path and swapping out the content from beneath snapcraft,
+/// we work around the issue.
+pub fn execute_snapcraft(
+    logger: &Logger,
+    args: &Vec<String>,
+    snap: &Snap,
+    build_path: &Path,
+    files: &FileManifest,
+) -> Result<(), String> {
+    if !build_path.exists() {
+        std::fs::create_dir_all(build_path)
+            .or_else(|_| Err(format!("error creating {}", build_path.display())))?;
+    }
 
-    let snap_path = temp_dir_path.join("snap");
+    // Remove existing content of build directory and replace with our own.
+    for entry in walkdir::WalkDir::new(build_path).contents_first(true) {
+        let entry = entry.or_else(|_| Err("could not resolve directory entry".to_string()))?;
+        let p = entry.path();
+
+        if entry.path_is_symlink() || p.is_file() {
+            std::fs::remove_file(p)
+                .or_else(|_| Err(format!("unable to remove {}", p.display())))?;
+        } else {
+            std::fs::remove_dir(p).or_else(|_| Err(format!("unable to remove {}", p.display())))?;
+        }
+    }
+
+    super::filemanifest::install_files(build_path, files);
+
+    let snap_path = build_path.join("snap");
     std::fs::create_dir(&snap_path).expect("unable to create snap directory");
-
-    super::filemanifest::install_files(temp_dir_path, files);
-
     let snapcraft_yaml_path = snap_path.join("snapcraft.yaml");
 
     let yaml = serde_yaml::to_vec(snap).expect("unable to format YAML");
@@ -159,16 +189,9 @@ pub fn execute_snapcraft(logger: &Logger, snap: &Snap, files: &FileManifest, dis
     fh.write_all(&yaml)
         .expect(&format!("unable to write {:?}", &snapcraft_yaml_path));
 
-    let output_path = dist_path.join(format!("{}-{}.snap", snap.name, snap.version));
-    let args = vec![
-        "snap".to_string(),
-        "--output".to_string(),
-        format!("{}", output_path.display()),
-    ];
-
     let mut cmd = std::process::Command::new("snapcraft")
-        .args(&args)
-        .current_dir(temp_dir_path)
+        .args(args)
+        .current_dir(build_path)
         .stdout(std::process::Stdio::piped())
         .spawn()
         .expect("error running snapcraft");
@@ -179,4 +202,6 @@ pub fn execute_snapcraft(logger: &Logger, snap: &Snap, files: &FileManifest, dis
             warn!(logger, "{}", line.unwrap());
         }
     }
+
+    Ok(())
 }

@@ -68,10 +68,11 @@ impl EvalResult {
                 Step::Snapcraft(snapcraft) => {
                     crate::snap::execute_snapcraft(
                         &self.logger,
+                        &snapcraft.args,
                         &snapcraft.snap.snap,
+                        &snapcraft.build_path,
                         &snapcraft.manifest.files,
-                        &self.context.dist_path,
-                    );
+                    )?;
                 }
                 Step::TarArchive(ta) => {
                     ta.execute(&self.logger, &pipeline.dist_path)?;
