@@ -2,6 +2,147 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+/*!
+The `starlark` module and related sub-modules define the
+[Starlark](https://github.com/bazelbuild/starlark) dialect used to power
+`tugger` configuration files and provide mechanisms for evaluating those
+files.
+
+The custom Starlark primitives provided by the dialect are documented
+in the sections below.
+
+## File Representation and Manipulation
+
+### `SourceFile`
+
+Type used to represent a file.
+
+Instances are typically constructed by other functions.
+
+### `FileManifest`
+
+Type representing a virtual filesystem mapping of relative filenames to
+file content. `FileManifest` instances are used to represent things like
+file layouts in an installed directory, lists of files to package, etc.
+
+Instances are typically constructed by other functions.
+
+### `glob(include, exclude=None)`
+
+Resolve file patterns to files.
+
+`include` is a `str` or `list` of `str` containing filenames that will be
+matched using the `glob` Rust crate. If filenames begin with `/` they are
+absolute. Otherwise they are relative to the directory the file is
+being evaluated in.
+
+`exclude` has the same type as `include` but is used to exclude certain
+files from the result. All patterns in `include` are evaluated before
+`exclude`.
+
+Returns a `list` of `SourceFile` instances.
+
+### `file_manifest_from_files(files, relative_to=None, prefix=None)`
+
+Construct a `FileManifest` from an iterable of `SourceFile` instances.
+
+The paths in `FileManifest` will be relative to the `relative_to` path,
+which by default is the relative directory of the Starlark file currently
+being evaluated.
+
+`prefix` can be used to prefix all relative paths with a value.
+
+It is common to pass the output of `glob()` as the value for the `files`
+argument.
+
+## Pipelines
+
+Pipelines are an entity with a name and a series of steps to execute.
+
+### `Pipeline`
+
+Represents a constructed pipeline. Instances are produced by calling the
+`pipeline()` function.
+
+### `pipeline(name, steps=[])`
+
+Create a pipeline from a series of steps.
+
+`name` is the unique name of this pipeline. It will be displayed during
+processing.
+
+`steps` is a list of objects that are known `actions`/`steps` types.
+
+## Actions
+
+Actions represent a logically discrete unit of work. They are the building
+blocks of `pipelines`.
+
+Actions are created by calling functions that define an action. These
+functions are described below.
+
+### `snapcraft(snap, manifest)`
+
+Define an invocation of `snapcraft`.
+
+`snapcraft` is a packaging tool used to produdce snaps. This function
+produces an action that will translate to invocation of the
+`snapcraft snap` command.
+
+The `snap` argument is a `Snap` instance. See the `snap()` function for
+how to create one.
+
+`manifest` is a `FileManifest` for the snap build environment. Then
+`snapcraft` is invoked, it will be done so from a temporary directory
+composed of the files defined by this manifest.
+
+### `tar_archive(filename, manifest)`
+
+Produce a tar archive from a manifest of files.
+
+`filename` is a string denoting the output filename.
+
+`manifest` is a `FileManifest` describing the files to add to the archive.
+The value will be copied and modifications to the original `FileManifest`
+will not be reflected on the returned instance.
+
+Returns a `TarArchive` describing a tar archive to produce.
+
+## Snapcraft Configuration
+
+Various types and functions exist to define a `snapcraft.yaml`
+configuration file.
+
+### `snap_part(**kwargs)`
+
+This function returns a `SnapPart` type which will represents a
+`part` entry in a `snapcraft.yaml` file. Arguments to this function
+are the various attributes that can exist in
+[snapcraft parts metadata](https://snapcraft.io/docs/snapcraft-parts-metadata).
+`-` in key names is replaced by `_` in the argument name. For example,
+the `override-build` key would be defined by the `override_build`
+argument.
+
+### `snap_app(**kwargs)`
+
+This function returns a `SnapApp` type which represents an
+`apps` entry in a `snapcraft.yaml` file. Arguments to this function
+are the various attributes that can exist in
+[snapcraft app and service metadata](https://snapcraft.io/docs/snapcraft-app-and-service-metadata).
+`-` in key names is replaced by `_` in the argument name. For example,
+the `commid-id` key would be defined by the `common_id` argument.
+
+### `snap(name, description, summary, version, **kwargs)`
+
+This function returns a `Snap` type which represents a full
+`snapcraft.yaml` file. Arguments to this function are the various
+attributes that can exist in
+[snapcraft top-level metadata](https://snapcraft.io/docs/snapcraft-top-level-metadata).
+`-` in key names is replaced by `_` in the argument name. For example,
+the `snap-type` key would be defined by the `snap_type` argument.
+
+*/
+
 use super::glob::evaluate_glob;
 use starlark::environment::{Environment, EnvironmentError};
 use starlark::stdlib::global_functions;
@@ -175,35 +316,12 @@ fn required_dict_arg(
 }
 
 starlark_module! { tugger_module =>
-    /// glob(include, exclude=[])
-    ///
-    /// Resolve file patterns to files.
-    ///
-    /// `include` is a `str` or `list` of `str` containing filenames that will be
-    /// matched using the `glob` Rust crate. If filenames begin with `/` they are
-    /// absolute. Otherwise they are relative to the directory the file is
-    /// being evaluated in.
-    ///
-    /// `exclude` has the same type as `include` but is used to exclude certain
-    /// files from the result. All patterns in `include` are evaluated before
-    /// `exclude`.
-    ///
-    /// Returns a `list` of `SourceFile` instances.
     glob(env env, include, exclude=None) {
         let cwd = env.get("CWD").unwrap().to_str();
 
         resolve_include_exclude(&cwd, &include, &exclude)
     }
 
-    /// file_manifest_from_files(files, relative_to=None, prefix=None)
-    ///
-    /// Construct a `FileManifest` from an iterable of `SourceFile` (often from
-    /// using `glob()`).
-    ///
-    /// The paths in `FileManifest` will be relative to the `relative_to` path,
-    /// which is the relative directory the file is being evaluated in by default.
-    ///
-    /// `prefix` can be used to prefix all relative paths with a value.
     file_manifest_from_files(env env, files, relative_to=None, prefix=None) {
         let cwd = env.get("CWD").unwrap().to_str();
 
@@ -267,17 +385,6 @@ starlark_module! { tugger_module =>
         Ok(Value::new(manifest))
     }
 
-    /// tar_archive(filename, manifest)
-    ///
-    /// Produce a tar archive from a manifest of files.
-    ///
-    /// `filename` is a string denoting the output filename.
-    ///
-    /// `manifest` is a `FileManifest` describing the files to add to the archive.
-    /// The value will be copied and modifications to the original `FileManifest`
-    /// will not be reflected on the returned instance.
-    ///
-    /// Returns a `TarArchive` describing a tar archive to produce.
     tar_archive(filename, manifest) {
         check_type!(filename, "tar_archive", string);
         check_type!(manifest, "tar_archive", FileManifest);
@@ -293,13 +400,6 @@ starlark_module! { tugger_module =>
         Ok(Value::new(tar))
     }
 
-    /// pipeline(name, steps=[])
-    ///
-    /// Create a pipeline from a series of steps.
-    ///
-    /// Pipelines represent a named series of actions to perform to accomplish some
-    /// task. A step is a type - like the result of `tar_archive()` - that can be
-    /// evaluated.
     pipeline(env env, name, steps=None) {
         check_type!(name, "pipeline", string);
 
