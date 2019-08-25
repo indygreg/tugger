@@ -8,7 +8,7 @@ build_path = CWD + '/build'
 tugger_source_files = glob('**/*', exclude=['.git/**/*', 'build/**/*', 'target/**/*'])
 tugger_source_manifest = file_manifest_from_files(tugger_source_files)
 
-ubuntu_18_snap = snap(name, description, summary, version,
+snap_yaml = snap(name, description, summary, version,
     base='core18',
     parts={name: snap_part(plugin='rust', source=".")},
     apps={name: snap_app(command='bin/tugger')})
@@ -16,32 +16,28 @@ ubuntu_18_snap = snap(name, description, summary, version,
 snap_build_path = '%s/snap' % build_path
 snap_name = '%s_%s.amd64.snap' % (name, version)
 
-ubuntu_18_snap_build = snapcraft(
-    ['snap', '-o', snap_name],
-    ubuntu_18_snap,
-    snap_build_path,
-    tugger_source_manifest,
+pipeline(
+    'snap',
+    steps=[
+        snapcraft(
+            ['snap', '-o', snap_name],
+            snap_yaml,
+            snap_build_path,
+            tugger_source_manifest,
+        ),
+        snapcraft(
+            ['push', '--release', 'edge', snap_name],
+            snap_yaml,
+            snap_build_path,
+            tugger_source_manifest,
+            purge_build=False,
+        ),
+        snapcraft(
+            ['sign-build', snap_name],
+            snap_yaml,
+            snap_build_path,
+            tugger_source_manifest,
+            purge_build=False,
+        ),
+    ],
 )
-ubuntu_18_snap_push = snapcraft(
-    ['push', '--release', 'edge', snap_name],
-    ubuntu_18_snap,
-    snap_build_path,
-    tugger_source_manifest,
-    purge_build=False,
-)
-ubuntu_18_snap_sign = snapcraft(
-    ['sign-build', snap_name],
-    ubuntu_18_snap,
-    snap_build_path,
-    tugger_source_manifest,
-    purge_build=False,
-)
-
-steps = [
-    #tar_archive('%s-%s.tar' % (name, version), tugger_source_manifest),
-    ubuntu_18_snap_build,
-    ubuntu_18_snap_push,
-    ubuntu_18_snap_sign,
-]
-
-pipeline('pipeline', steps=steps)
